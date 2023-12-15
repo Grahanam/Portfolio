@@ -8,5 +8,5 @@ export default defineConfig({
             
         })
     ],
-    base: '/vite-deploy-demo/'
+    base: '/Portfolio/'
 })
