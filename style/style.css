@@ -1,11 +1,11 @@
 @font-face {
   font-family: 'Ninja Naruto';
-  src: url('./font/NinjaNaruto.eot'); /* IE9 Compat Modes */
-    src: url('./font/NinjaNaruto.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-         url('./font/NinjaNaruto.woff') format('woff'), /* Modern Browsers */
-         url('./font/NinjaNaruto.woff2') format('woff2'),
-         url('./font/njnaruto.ttf')  format('truetype'), /* Safari, Android, iOS */
-         url('./font/NinjaNaruto.svg') format('svg'); /* Legacy iOS */
+  src: url('../font/NinjaNaruto.eot'); /* IE9 Compat Modes */
+    src: url('../font/NinjaNaruto.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('../font/NinjaNaruto.woff') format('woff'), /* Modern Browsers */
+         url('../font/NinjaNaruto.woff2') format('woff2'),
+         url('../font/njnaruto.ttf')  format('truetype'), /* Safari, Android, iOS */
+         url('../font/NinjaNaruto.svg') format('svg'); /* Legacy iOS */
          font-weight: normal;
          font-style: normal;
          font-display: swap;

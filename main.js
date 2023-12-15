@@ -147,7 +147,7 @@ scene.add(light);
     const loader=new GLTFLoader()
 
     //Add Sasuke to scene
-    loader.load('models/sasuke.glb',function(glft){
+    loader.load('/models/sasuke.glb',function(glft){
     // console.log(glft) 
     model=glft.scene
     // model.children[0].material=sasuke_mtl
@@ -212,7 +212,7 @@ const color = new THREE.Color();
     // scene.add( sphere );
 
     //Add Shiringan Eye
-    loader.load('models/editsharingan.glb',function(glft){
+    loader.load('/models/editsharingan.glb',function(glft){
         console.log(glft)
         sharingan=glft.scene
         let animation=glft.animations[0]
