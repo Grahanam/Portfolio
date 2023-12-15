@@ -1,36 +1,19 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import {FBXLoader} from 'three/addons/loaders/FBXLoader.js'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 // import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// import {MirroredRepeatWrapping} from 'three'
-import {
-    OrbitControls
-  } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
 
-import vertexShader from './objects/shaders/VertexShader.glsl'
-import fragmentShader from './objects/shaders/FragmentShader.glsl'
-const BLOOM_SCENE = 1;
-const bloomLayer = new THREE.Layers();
-bloomLayer.set( BLOOM_SCENE );
-const params = {
-    threshold: 0,
-    strength: 3,
-    radius: 0,  //0.5
-    exposure: 2   //1
-};
-const darkMaterial = new THREE.MeshBasicMaterial( { color: 'black' } );
-const materials = {}
+
+import sasukemodel from './models/sasuke.glb?url'
+import sharinganeye from './models/editsharingan.glb?url'
+import waternormals from './static/normals/waternormals.jpeg?url'
+
+
+
 
 import  {Water} from './objects/Water'
 import { Sky } from './objects/Sky';
-let bloomComposer,finalComposer
+
 let setmodelloading=false
 let loaderanimation=document.querySelector('#loader')
 let message=document.querySelector('.message')
@@ -49,7 +32,7 @@ const water = new Water(
     {
         textureWidth: 512,
         textureHeight: 512,
-        waterNormals: new THREE.TextureLoader().load('static/normals/waternormals.jpeg', function (texture) {
+        waterNormals: new THREE.TextureLoader().load(waternormals, function (texture) {
             texture.wrapS = texture.wrapT =THREE.MirroredRepeatWrapping;
         }),
         sunDirection: new THREE.Vector3(),
@@ -60,10 +43,6 @@ const water = new Water(
     }
 );
 
-
-
-// renderer.setSize( window.innerWidth, window.innerHeight );
-// document.body.appendChild( renderer.domElement );
 
 
 function init(){
@@ -114,11 +93,7 @@ function init(){
     const material = new THREE.MeshBasicMaterial( {color: 0x00000} ); 
     const cylinder = new THREE.Mesh( geometry, material ); 
     scene.add( cylinder );
-    
-    // Add light to scene
-    // const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-    // light.position.set(0, 300, 0);
-    // scene.add(light);
+
 
     const light = new THREE.HemisphereLight(0xff0000, 0x444444, 1); // Red light
 light.position.set(0, 300, 0);
@@ -147,30 +122,13 @@ scene.add(light);
     const loader=new GLTFLoader()
 
     //Add Sasuke to scene
-    loader.load('/models/sasuke.glb',function(glft){
+    loader.load(sasukemodel,function(glft){
     // console.log(glft) 
     model=glft.scene
-    // model.children[0].material=sasuke_mtl
-    // model.children[0].castShadow=true
-    // model.children[0].receiveShadow=true
-    // console.log()
-    // console.log(model.children[0])
-    // model.children[0].material.metalness = 0;
-    //     model.children[1].material.metalness = 0;
-    // model.traverse(o=>{
-    //     if(o.isMesh){
-    //         o.castShadow=true
-    //         o.receiveShadow=true
-            
-    //         // o.material=sasuke_mtl
-    //     }
-    // })
     model.scale.set(12, 12, 12);    //8
     model.position.y+=9.9
     // model.rotation.x+=3
     let animation=glft.animations
-    model.layers.toggle( BLOOM_SCENE );
-    
     // redlight.lookAt(model)
     scene.add(model)
     const purpleColor = 0x800080
@@ -195,24 +153,8 @@ scene.add(spotLight.target);
 });
 
 
-
-const geometry1 = new THREE.IcosahedronGeometry( 1, 15 );
-
-const color = new THREE.Color();
-    color.setHSL( Math.random(), 0.7, Math.random() * 0.2 + 0.05 );
-
-    const material1 = new THREE.MeshBasicMaterial( { color:0xff0000 } );
-    const sphere = new THREE.Mesh( geometry1, material1 );
-    sphere.layers.toggle( BLOOM_SCENE );
-    // render();
-    sphere.position.y+=20
-    sphere.position.x+=10
-    sphere.position.z-=30
-    sphere.scale.set(5,5,5)
-    // scene.add( sphere );
-
     //Add Shiringan Eye
-    loader.load('/models/editsharingan.glb',function(glft){
+    loader.load(sharinganeye,function(glft){
         console.log(glft)
         sharingan=glft.scene
         let animation=glft.animations[0]
@@ -221,7 +163,6 @@ const color = new THREE.Color();
         sharingan.position.x+=0
         sharingan.position.z-=30
         sharingan.position.y+=30
-        sharingan.layers.toggle( BLOOM_SCENE );
         scene.add(sharingan)
         
         mixer2 = new THREE.AnimationMixer(sharingan)
@@ -236,7 +177,7 @@ const color = new THREE.Color();
 }
 
 
-
+//Sharigan Eye following cursor
 function onMouseMove(event){
     //  console.log(event.clientX)
     
@@ -251,6 +192,7 @@ window.addEventListener('mousemove',onMouseMove)
 
 window.addEventListener('resize',onWindowResize,false)
 
+//Handle Window resize
 function onWindowResize(){
     renderer.setSize( window.innerWidth, window.innerHeight );
     camera.aspect = window.innerWidth / window.innerHeight
@@ -258,6 +200,7 @@ function onWindowResize(){
     camera.updateProjectionMatrix()
 }
 
+//Click event listener to handle page show/hide,music,loaderanimation hide,message display
 let divopen=true
 window.addEventListener('click',()=>{
     if(setmodelloading){
@@ -277,98 +220,14 @@ window.addEventListener('click',()=>{
          divopen=true
     }
 })
-// let button=document.getElementById('showinfo')
-// button.addEventListener('click',()=>{
-//     let page1=document.querySelector('.page1')
-//     // console.log(page1)
-//     if(divopen){
-//         page1.style.display='none'
-//         divopen=false
-//     }else{
-//         page1.style.display='flex'
-//         divopen=true
-//     }
-    
-// })
 
 
 
-// var hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444 );
-// hemiLight.position.set( 0, 300, 0 );
-// scene.add( hemiLight );
-
-// var dirLight = new THREE.DirectionalLight( 0xffffff );
-// dirLight.position.set( 75, 300, -75 );
-// scene.add( dirLight );
-
-// const objloader=new OBJLoader()
-// objloader.load('models/floating_island.obj',function(object){
-//     console.log(object)
-//     scene.add(object)
-// },
-// function(xhr){
-//     console.log((xhr.loaded/xhr.total*100)+'% loaded')
-// }
-// ,
-// function(error){
-//     console.log('An error occured')
-// }
-// )
-
-
-// let sasuke_txt = new THREE.TextureLoader().load('models/texture/baju.png');
-
-// sasuke_txt.flipY = false; // we flip the texture so that its the right way up
-
-// const sasuke_mtl = new THREE.MeshPhongMaterial({
-//   map: sasuke_txt,
-//   color: 0xffffff,
-//   skinning: true
-// });
-
-
-
-// loader.load('models/lightning.glb',function(glft){
-//     console.log(glft)
-//     const light=glft.scene
-//     scene.add(light)
-
-// })
-
-
-// loader.load('models/glowingrock/scene.gltf',function(glft){
-//     console.log(glft)
-//     const rock=glft.scene
-//     rock.scale.set(7,7,7)
-//     rock.position.x+=10
-//     scene.add(rock)
-
-// })
-
-
-// const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-// const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-// const cube = new THREE.Mesh( geometry, material );
-
-
-// scene.add( cube );
-
-
-// camera.rotation.y+=90*Math.PI/180
-
-
+//Render animation
 function animate() {
 	requestAnimationFrame( animate );
 
-	// cube.rotation.x += 0.01;
-	// cube.rotation.y += 0.01;
-
 	renderer.render( scene, camera );
-    // scene.traverse( darkenNonBloomed );
-    // bloomComposer.render();
-    // scene.traverse( restoreMaterial );
-    // finalComposer.render();
-    // bloomComposer.render();
     if (mixer2) {
         mixer2.update(clock2.getDelta());
     }
@@ -377,7 +236,6 @@ function animate() {
         mixer.update(clock.getDelta());
     }
     
-    // light.rotation.x+=0.01
     water.material.uniforms['time'].value+=1/60.0
   
 }
@@ -385,34 +243,7 @@ init()
 animate();
 
 
-function disposeMaterial( obj ) {
 
-    if ( obj.material ) {
 
-        obj.material.dispose();
 
-    }
 
-}
-
-function darkenNonBloomed( obj ) {
-
-    if ( obj.isMesh && bloomLayer.test( obj.layers ) === false ) {
-
-        materials[ obj.uuid ] = obj.material;
-        obj.material = darkMaterial;
-
-    }
-
-}
-
-function restoreMaterial( obj ) {
-
-    if ( materials[ obj.uuid ] ) {
-
-        obj.material = materials[ obj.uuid ];
-        delete materials[ obj.uuid ];
-
-    }
-
-}
