@@ -75,57 +75,6 @@ function init(){
 
     // let controls = new OrbitControls(camera, renderer.domElement);
 
-    
-    //bloom renderer
-    const renderScene = new RenderPass(scene, camera);
-
-    const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
-			bloomPass.threshold = params.threshold;
-			bloomPass.strength = params.strength;
-			bloomPass.radius = params.radius;
-
-			bloomComposer = new EffectComposer( renderer );
-			bloomComposer.renderToScreen = false;
-			bloomComposer.addPass( renderScene );
-			bloomComposer.addPass( bloomPass );
-
-            const mixPass = new ShaderPass(
-				new THREE.ShaderMaterial( {
-					uniforms: {
-						baseTexture: { value: null },
-						bloomTexture: { value: bloomComposer.renderTarget2.texture }
-					},
-					vertexShader: document.getElementById( 'vertexshader' ).textContent,
-					fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
-					defines: {}
-				} ), 'baseTexture'
-			);
-			mixPass.needsSwap = true;
-
-            const outputPass = new OutputPass();
-
-			finalComposer = new EffectComposer( renderer );
-			finalComposer.addPass( renderScene );
-			finalComposer.addPass( mixPass );
-			finalComposer.addPass( outputPass );
-
-            scene.traverse( disposeMaterial );
-				scene.children.length = 0;
-//     const bloomPass = new UnrealBloomPass(
-//         new THREE.Vector2(window.innerWidth, window.innerHeight),
-//         1.5,
-//         0.4,
-//         0.85
-//       );
-//       bloomPass.threshold = 0;
-// bloomPass.strength = 0.5; //intensity of glow
-// bloomPass.radius = 0;
-// bloomComposer = new EffectComposer(renderer);
-// bloomComposer.setSize(window.innerWidth, window.innerHeight);
-// bloomComposer.renderToScreen = true;
-// bloomComposer.addPass(renderScene);
-// bloomComposer.addPass(bloomPass);
-
 
     water.rotation.x = -Math.PI / 2;
     water.rotation.z = 0;

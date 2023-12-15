@@ -7,5 +7,6 @@ export default defineConfig({
         glsl({
             
         })
-    ]
+    ],
+    base: '/vite-deploy-demo/'
 })
