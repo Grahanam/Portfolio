@@ -8,5 +8,5 @@ export default defineConfig({
             
         })
     ],
-    // base: '/Portfolio/'
+    base: '/Portfolio/'
 })
