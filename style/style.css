@@ -97,7 +97,7 @@ body {
   flex-direction: column;
 }
 .inner-container h1{
-  font-size:40px;
+  font-size:50px;
   margin-bottom: 10px;
   color: #fffdfd;
 }
@@ -106,12 +106,13 @@ body {
    cursor: pointer;
 }
 .inner-container h3{
-  font-size:25px;
+  font-size:35px;
 }
 .inner-container h2{
   color:#2782ff;
   margin-bottom: 0;
-  font-size:30px;
+  font-size:40px;
+  
 }
 .inner-container ul{
   list-style-type: disc;
@@ -129,6 +130,50 @@ body {
   text-decoration-color: none;
   color: inherit;
 }
+@media screen and (max-width:399px){
+  .inner-container{
+    padding:10px;
+  }
+  .inner-container h1{
+    /* font-size:10px ; */
+    font-size:24px;
+    margin-bottom: 1px;
+  }
+  .inner-container h2{
+    font-size: 20px;
+    /* font-size:30px */
+  }
+  .inner-container h3{
+    font-size:15px ;
+    /* font-size:25px */
+  }
+  .inner-container ul li{
+    font-size: 12px;
+  }
+
+}
+@media only screen and (min-width:400px) and (max-width:768px){
+  
+  .inner-container h1{
+    font-size:35px;
+  }
+  .inner-container h2{
+    font-size: 25px;
+    /* font-size:30px */
+  }
+  .inner-container h3{
+    font-size:20px ;
+    /* font-size:25px */
+  }
+  .inner-container ul li{
+    font-size: 15px;
+  }
+
+}
+
+
+
+
 
 .projectlink:hover{
   cursor: pointer;
@@ -173,7 +218,7 @@ body {
     position:relative;
     border:5px #000 solid;
     border:5px #e41414 solid;
-    animation: spin 5s ease-in-out, shine 5s ease-in-out; 
+    animation: spin 5s ease-in-out infinite, shine 5s ease-in-out; 
 }
 
 .sharingan .inner-ring{
@@ -360,11 +405,7 @@ body {
     }
   }
 
-  @media screen and (max-width:600px){
-    .container{
-
-    }
-  }
+ 
   
   /* @keyframes shine {
     0% {
