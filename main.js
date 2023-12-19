@@ -3,30 +3,50 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+
+//Models 
 import sasukemodel from './models/sasuke.glb?url'
 import sharinganeye from './models/editsharingan.glb?url'
-import waternormals from './static/normals/waternormals.jpeg?url'
 import vfx from './models/vfx.glb?url'
 import fire from './models/fire.glb?url'
 
+//Water and Sky Objects :ThreeJs example
 import  {Water} from './objects/Water'
 import { Sky } from './objects/Sky';
+//Water Image
+import waternormals from './static/normals/waternormals.jpeg?url'
 
-let setmodelloading=false
-let loaderanimation=document.querySelector('#loader')
-let message=document.querySelector('.message')
-let mixer,idle,mixer2,eyespin,sharingan
-let clock = new THREE.Clock()
-let clock2=new THREE.Clock() 
+
+//Scene and Camera 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 2000 );
 
-let renderer,controls,vfxmodel,firemodel
+//Clock for Model Animation
+let clock = new THREE.Clock()
+let clock2=new THREE.Clock() 
+
+let renderer,
+    controls,
+    vfxmodel,
+    firemodel,
+    mixer,
+    idle,
+    mixer2,
+    eyespin,
+    sharingan
+
+//Page 1 Div    
 let page1=document.querySelector('.page1')
+//Page 2 Div
 let page2=document.querySelector('.page2')
+//Loader Div
+let loaderanimation=document.querySelector('#loader')
+//Message Div
+let message=document.querySelector('.message')
+
+let setmodelloading=false
 
 const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
-
 //Water Object
 const water = new Water(
     waterGeometry,
@@ -45,17 +65,19 @@ const water = new Water(
 );
 
 
-
+//Scene Setup
 function init(){
+
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.toneMapping = THREE.ReinhardToneMapping;
     document.body.appendChild( renderer.domElement );
 
-    
+    //Orbit Controls
     controls = new OrbitControls(camera, renderer.domElement);   
-
+    
+    //Add Water object
     water.rotation.x = -Math.PI / 2;
     water.rotation.z = 0;
     scene.add(water)
@@ -92,16 +114,16 @@ function init(){
     //Add Cylinder Pole to scene
     const geometry = new THREE.CylinderGeometry( 1.8, 1.8, 20, 25 ); 
     const material = new THREE.MeshStandardMaterial({
-        color: 0x000000, // Base color
-        roughness: 0.1, // Adjust roughness for shininess (lower values are shinier)
-        metalness: 1, // Metalness controls how much the material behaves like meta
+        color: 0x000000,
+        roughness: 0.1, 
+        metalness: 1, 
     });
     const cylinder = new THREE.Mesh( geometry, material ); 
     scene.add( cylinder );
 
     
 
-
+    //Add Light to scene
     const light = new THREE.HemisphereLight(0xff0000, 0x444444, 1); // Red light
     light.position.set(0, 300, 0);
     scene.add(light);
@@ -121,11 +143,11 @@ function init(){
     redlight.position.x+=0
     scene.add( redlight );
 
-    //initial position
 
-    camera.position.z = 30;
-    camera.position.y=30
-    camera.rotation.x=30
+    //Camera initial position
+    // camera.position.z = 30;
+    // camera.position.y=30
+    // camera.rotation.x=30
 
     // camera.position.z = 30;
     // camera.position.y=25
@@ -133,14 +155,17 @@ function init(){
     // camera.rotation.x=-Math.PI/2
     // camera.rotation.y=Math.PI/2
     // camera.rotateX(3)
+
+    //Orbit controls Setting:
     controls.target.set(0,9.9,0)
-    controls.distance=80
+    controls.distance=30
     controls.minDistance=30
     controls.maxDistance=30
     controls.minPolarAngle=Math.PI/2
     controls.maxPolarAngle=Math.PI/2
     controls.minAzimuthAngle=-0.9
     controls.maxAzimuthAngle=0.9
+    controls.enablePan=false
 
     controls.update()
     
@@ -157,49 +182,57 @@ function init(){
     model.position.y+=9.8
     // model.rotation.x+=3
     let animation=glft.animations
-    // redlight.lookAt(model)
+    redlight.lookAt(model)
     scene.add(model)
     const purpleColor = 0x800080
     const spotLight = new THREE.SpotLight(purpleColor);
     spotLight.position.set(10, 20, 30); // Set the position of the spotlight
     spotLight.target.position.set(model.position.x, model.position.y, model.position.z); // Set the target of the spotlight to the character
 
-spotLight.distance = 200; // Set the distance of the light
-spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
+    spotLight.distance = 200; // Set the distance of the light
+    spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
+    scene.add(spotLight); // Add the spotlight to the scene
+    scene.add(spotLight.target); 
 
-scene.add(spotLight); // Add the spotlight to the scene
-scene.add(spotLight.target); 
     mixer = new THREE.AnimationMixer(model)
     let idleAnim = THREE.AnimationClip.findByName(animation, 'idle');
-    console.log(idleAnim)
+    // console.log(idleAnim)
     idle = mixer.clipAction(idleAnim);
     idle.play();
 
     setmodelloading=true
     message.style.display='flex'
-    // loaderanimation.remove()
 
+
+    //Orbit control event listener to handle object rotation,page hide/show
     controls.addEventListener('change',()=>{
         const maxverticalAngle=Math.PI/3
         let azimuthangle=controls.getAzimuthalAngle()
         // console.log(azimuthangle)
+        //Sharigan Eye y rotation
         sharingan.rotation.y=azimuthangle/2
+
+        //Fire and Energy Ring rotation z 
         firemodel.children[0].rotation.z=azimuthangle
         vfxmodel.children[0].rotation.z=azimuthangle
         vfxmodel.rotation.y=azimuthangle/2
         firemodel.rotation.y=azimuthangle/2
+
+        //Show Page1
         if(azimuthangle===0.9){
             page1.style.display='flex'
             divopen1=true
         }else{
             page1.style.display='none'
         }
+        //Show Page2
         if(azimuthangle===-0.9){
             page2.style.display='flex'
             divopen2=true
         }else{
             page2.style.display='none'
         }
+        //Sharingan Eye x rotation
         if(azimuthangle<0){
              sharingan.rotation.x=-azimuthangle/2
         }else{
@@ -289,6 +322,8 @@ page2.addEventListener('click',()=>{
         divopen2=false 
     }
 })
+
+//On click event listener handle audio play, loader animation hide
 window.addEventListener('click',()=>{
     if(setmodelloading){
         loaderanimation.remove()
