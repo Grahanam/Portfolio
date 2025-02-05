@@ -2,12 +2,18 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { LightningStrike } from "./geometries/LightningStrike.js";
 
 //Models
-import sasukemodel from "./models/sasuke.glb?url";
-import sharinganeye from "./models/editsharingan.glb?url";
-import vfx from "./models/vfx.glb?url";
-import fire from "./models/fire.glb?url";
+import sasukemodel2 from "./models/sasuke_walk.glb?url";
+// import sharinganeye from "./models/editsharingan.glb?url";
+// import vfx from "./models/vfx.glb?url";
+// import fire from "./models/fire.glb?url";
+import bridge from "./models/bridge2.glb?url";
+import sasuno from "./models/sasuno.glb?url";
 
 //Water and Sky Objects :ThreeJs example
 import { Water } from "./objects/Water";
@@ -27,16 +33,32 @@ const camera = new THREE.PerspectiveCamera(
 //Clock for Model Animation
 let clock = new THREE.Clock();
 let clock2 = new THREE.Clock();
+let clock3 = new THREE.Clock();
 
 let renderer,
+  composer,
+  dirt,
   controls,
   vfxmodel,
+  bridgemodel1,
+  bridgemodel2,
   firemodel,
   mixer,
+  walk,
   idle,
+  sasunomixer,
   mixer2,
   eyespin,
-  sharingan;
+  sharingan,
+  cube1,
+  cube2,
+  cube3,
+  cube4,
+  lightn,
+  lightn1,
+  fliper;
+
+fliper = true;
 
 //Page 1 Div
 let page1 = document.querySelector(".page1");
@@ -51,6 +73,106 @@ let swipeicon = document.querySelector(".swipeicon");
 
 let setmodelloading = false;
 
+const rayParams1 = {
+  sourceOffset: new THREE.Vector3(),
+  destOffset: new THREE.Vector3(),
+  radius0: 0.05,
+  radius1: 0.05,
+  minRadius: 2.5,
+  maxIterations: 7,
+  isEternal: true,
+
+  timeScale: 0.7,
+
+  propagationTimeFactor: 0.05,
+  vanishingTimeFactor: 0.95,
+  subrayPeriod: 2.5,
+  subrayDutyCycle: 0.3,
+  maxSubrayRecursion: 3,
+  ramification: 7,
+  recursionProbability: 0.6,
+
+  roughness: 0.85,
+  straightness: 0.68,
+};
+
+const rayParams2 = {
+  sourceOffset: new THREE.Vector3(),
+  destOffset: new THREE.Vector3(),
+  radius0: 0.05,
+  radius1: 0.05,
+  minRadius: 2.5,
+  maxIterations: 7,
+  isEternal: true,
+
+  timeScale: 0.7,
+
+  propagationTimeFactor: 0.05,
+  vanishingTimeFactor: 0.95,
+  subrayPeriod: 2.5,
+  subrayDutyCycle: 0.3,
+  maxSubrayRecursion: 3,
+  ramification: 7,
+  recursionProbability: 0.6,
+
+  roughness: 0.85,
+  straightness: 0.68,
+};
+
+const rayParams3 = {
+  sourceOffset: new THREE.Vector3(),
+  destOffset: new THREE.Vector3(),
+  radius0: 0.05,
+  radius1: 0.05,
+  minRadius: 2.5,
+  maxIterations: 7,
+  isEternal: true,
+
+  timeScale: 0.7,
+
+  propagationTimeFactor: 0.05,
+  vanishingTimeFactor: 0.95,
+  subrayPeriod: 2.5,
+  subrayDutyCycle: 0.3,
+  maxSubrayRecursion: 3,
+  ramification: 7,
+  recursionProbability: 0.6,
+
+  roughness: 0.85,
+  straightness: 0.68,
+};
+
+const rayParams4 = {
+  sourceOffset: new THREE.Vector3(),
+  destOffset: new THREE.Vector3(),
+  radius0: 0.05,
+  radius1: 0.05,
+  minRadius: 2.5,
+  maxIterations: 7,
+  isEternal: true,
+
+  timeScale: 0.7,
+
+  propagationTimeFactor: 0.05,
+  vanishingTimeFactor: 0.95,
+  subrayPeriod: 2.5,
+  subrayDutyCycle: 0.3,
+  maxSubrayRecursion: 3,
+  ramification: 7,
+  recursionProbability: 0.6,
+
+  roughness: 0.85,
+  straightness: 0.68,
+};
+
+let lightningStrike, lightningStrike2, lightningStrike3, lightningStrike4;
+let lightningStrikeMesh,
+  lightningStrikeMesh2,
+  lightningStrikeMesh3,
+  lightningStrikeMesh4;
+
+const outlineMeshArray = [];
+
 const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
 //Water Object
 const water = new Water(waterGeometry, {
@@ -63,9 +185,11 @@ const water = new Water(waterGeometry, {
     }
   ),
   sunDirection: new THREE.Vector3(),
-  sunColor: 0xff0000, //0xffffff
+  // sunColor: 0xff0000, //0xffffff
   waterColor: 0x80080, //0x001e0f
-  distortionScale: 3.7,
+  sunColor: 0xfff000, //0xffffff
+  // distortionScale: 3.7,
+  distortionScale: 0.7,
   fog: scene.fog !== undefined,
 });
 
@@ -91,14 +215,19 @@ function init() {
   scene.add(sky); // Add the sky to our scene
 
   const skyUniforms = sky.material.uniforms;
-  skyUniforms["turbidity"].value = 1; //0.001 5   10
-  skyUniforms["rayleigh"].value = 0.01; //0.01 6   2
-  skyUniforms["mieCoefficient"].value = 0.003; //0.003 0.005
-  skyUniforms["mieDirectionalG"].value = 0.988; //0.988  0.8
+  // skyUniforms["turbidity"].value = 1; //0.001 5   10
+  // skyUniforms["rayleigh"].value = 0.01; //0.01 6   2
+  // skyUniforms["mieCoefficient"].value = 0.003; //0.003 0.005
+  // skyUniforms["mieDirectionalG"].value = 0.988; //0.988  0.8
+
+  skyUniforms["turbidity"].value = 5; //1 0.001 5   10
+  skyUniforms["rayleigh"].value = 0.001; //0.01 6   2
+  skyUniforms["mieCoefficient"].value = 0.001; //0.01 0.0001 0.003 0.005
+  skyUniforms["mieDirectionalG"].value = 0.4; //0.1 0.988  0.8
 
   const parameters = {
-    elevation: 20, //30
-    azimuth: 190, //175  115
+    elevation: 30, //30
+    azimuth: 280, //190  175  115
   };
 
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -111,79 +240,156 @@ function init() {
   sky.material.uniforms["sunPosition"].value.copy(sun);
   water.material.uniforms["sunDirection"].value.copy(sun).normalize();
   scene.environment = pmremGenerator.fromScene(sky).texture;
-  water.material.uniforms["speed"].value = 10.0;
+  water.material.uniforms["speed"].value = 20.0;
   water.material.uniforms["time"].value = 10.0;
 
-  //Add Cylinder Pole to scene
-  const geometry = new THREE.CylinderGeometry(1.8, 1.8, 20, 25);
-  const material = new THREE.MeshStandardMaterial({
-    color: 0x000000,
-    roughness: 0.1,
-    metalness: 1,
+  const pointGeometry = new THREE.BufferGeometry();
+  const pointMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.1, // Adjust the size of the point
   });
-  const cylinder = new THREE.Mesh(geometry, material);
-  scene.add(cylinder);
 
-  //Add Light to scene
-  const light = new THREE.HemisphereLight(0xff0000, 0x444444, 1); // Red light
-  light.position.set(0, 300, 0);
-  scene.add(light);
+  // Define the position of the point
+  const pointPosition = new Float32Array([0, 0, 0]); // x, y, z
+  pointGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(pointPosition, 3)
+  );
+
+  // Create the point mesh
+  cube1 = new THREE.Points(pointGeometry, pointMaterial);
+  cube2 = new THREE.Points(pointGeometry, pointMaterial);
+  cube3 = new THREE.Points(pointGeometry, pointMaterial);
+  cube4 = new THREE.Points(pointGeometry, pointMaterial);
+
+  cube1.castShadow =
+    cube2.castShadow =
+    cube3.castShadow =
+    cube4.castShadow =
+      true;
+
+  scene.add(cube1, cube2, cube3, cube4);
+
+  lightn = new THREE.PointLight(0x9c0cf4);
+  // lightn = new THREE.PointLight(0x9900ff);
+  lightn.castShadow = true;
+  scene.add(lightn);
+
+  lightn.shadow.mapSize.width = 512;
+  lightn.shadow.mapSize.height = 512;
+  lightn.shadow.camera.near = 0.5;
+  lightn.shadow.camera.far = 500;
+
+  lightn.position.y = 25;
+
+  lightn1 = new THREE.PointLight(0x9c0cf4);
+  lightn1.castShadow = true;
+  scene.add(lightn1);
+
+  lightn1.shadow.mapSize.width = 512;
+  lightn1.shadow.mapSize.height = 512;
+  lightn1.shadow.camera.near = 0.5;
+  lightn1.shadow.camera.far = 500;
+
+  lightn1.position.y = 70;
+  lightn1.position.x = -180;
+  lightn1.position.z = -4;
+
+  lightn1.intensity = 25000;
+
+  // Add Light to scene
+  // const light = new THREE.PointLight(0xff0000, 0x444444, 1); // Red light
+  // light.position.set(18, 10, 0);
+  // light.castShadow = true;
+  // scene.add(light);
 
   //Add shadow light to scene
   const shadowLight = new THREE.SpotLight();
   // shadowLight.lookAt(rocketModel.position);
-  shadowLight.position.z = 50;
-  shadowLight.position.y = 100;
-  shadowLight.position.x = 100;
+  shadowLight.position.z = 0;
+  shadowLight.position.y = 10;
+  shadowLight.position.x = 0;
   shadowLight.castShadow = true;
   scene.add(shadowLight);
 
-  const redlight = new THREE.AmbientLight(0xff0000); // soft white light
+  const redlight = new THREE.AmbientLight(0xffffff); // soft white light
   redlight.position.y = 18;
-  redlight.position.z = 18;
+  redlight.position.z = 10;
   redlight.position.x += 0;
   scene.add(redlight);
 
-  //Camera initial position
-  // camera.position.z = 30;
-  // camera.position.y=30
-  // camera.rotation.x=30
-
-  // camera.position.z = 30;
-  // camera.position.y=25
-  // camera.rotation.x=0
-  // camera.rotation.x=-Math.PI/2
-  // camera.rotation.y=Math.PI/2
-  // camera.rotateX(3)
-
   //Orbit controls Setting:
-  controls.target.set(0, 9.9, 0);
+  controls.target.set(4, 20, 0);
   controls.distance = 30;
   controls.minDistance = 30;
   controls.maxDistance = 30;
   controls.minPolarAngle = Math.PI / 2;
   controls.maxPolarAngle = Math.PI / 2;
-  controls.minAzimuthAngle = -0.9;
-  controls.maxAzimuthAngle = 0.9;
+  controls.minAzimuthAngle = -2.9;
+  controls.maxAzimuthAngle = 2.9;
   controls.enablePan = false;
 
   controls.update();
 
-  let model;
+  let model, model2;
+
   const loader = new GLTFLoader();
 
-  //Add Sasuke to scene
-  loader.load(sasukemodel, function (glft) {
-    model = glft.scene;
-    model.scale.set(12, 12, 12); //8
-    model.position.y += 9.8;
-    // model.rotation.x+=3
+  //Add Sasuno to scene
+  loader.load(sasuno, function (glft) {
+    model2 = glft.scene;
+    model2.scale.set(1.5, 1.5, 1.5); //8
+    model2.position.set(0, 0, 0);
+    model2.position.z = -15;
+    model2.translateX(-200);
+
+    model2.position.y = -4;
+    model2.rotation.y += 1.5;
     let animation = glft.animations;
-    redlight.lookAt(model);
-    scene.add(model);
-    const purpleColor = 0x800080;
+    // redlight.lookAt(model2);
+    scene.add(model2);
+    const purpleColor = 0xffffff;
     const spotLight = new THREE.SpotLight(purpleColor);
-    spotLight.position.set(10, 20, 30); // Set the position of the spotlight
+    spotLight.position.set(-180, -4, -10); // Set the position of the spotlight
+
+    spotLight.target.position.set(
+      model2.position.x,
+      model2.position.y,
+      model2.position.z
+    ); // Set the target of the spotlight to the character
+
+    spotLight.distance = 20; // Set the distance of the light
+    spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
+    scene.add(spotLight); // Add the spotlight to the scene
+    // scene.add(spotLight.target);
+    spotLight.intensity = 3000;
+
+    sasunomixer = new THREE.AnimationMixer(model2);
+    // let idleAnim = THREE.AnimationClip.findByName(animation, "idle");
+    // idle = mixer.clipAction(idleAnim);
+    // idle.play();
+    let idleAnim = THREE.AnimationClip.findByName(animation, "idle");
+
+    idle = sasunomixer.clipAction(idleAnim);
+    idle.play();
+  });
+
+  //Add Sasuke to scene
+  loader.load(sasukemodel2, function (glft) {
+    model = glft.scene;
+    model.scale.set(5, 5, 5); //8
+    model.position.set(0, 0, 0);
+    model.position.z = -3;
+
+    model.position.y += 12;
+    model.rotation.y += 1.5;
+    let animation = glft.animations;
+    // redlight.lookAt(model);
+    scene.add(model);
+    const purpleColor = 0xffffff;
+    const spotLight = new THREE.SpotLight(purpleColor);
+    spotLight.position.set(4, 1, 10); // Set the position of the spotlight
+
     spotLight.target.position.set(
       model.position.x,
       model.position.y,
@@ -192,13 +398,21 @@ function init() {
 
     spotLight.distance = 200; // Set the distance of the light
     spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
-    scene.add(spotLight); // Add the spotlight to the scene
-    scene.add(spotLight.target);
+    // scene.add(spotLight); // Add the spotlight to the scene
+    // scene.add(spotLight.target);
+    // spotLight.intensity = 3000;
 
     mixer = new THREE.AnimationMixer(model);
-    let idleAnim = THREE.AnimationClip.findByName(animation, "idle");
-    idle = mixer.clipAction(idleAnim);
-    idle.play();
+    // let idleAnim = THREE.AnimationClip.findByName(animation, "idle");
+    // idle = mixer.clipAction(idleAnim);
+    // idle.play();
+    let walkAnim = THREE.AnimationClip.findByName(
+      animation,
+      "Armature|mixamo.com|Layer0"
+    );
+
+    walk = mixer.clipAction(walkAnim);
+    walk.play();
 
     setmodelloading = true;
     message.style.display = "flex";
@@ -209,77 +423,120 @@ function init() {
       let azimuthangle = controls.getAzimuthalAngle();
       // console.log(azimuthangle)
       //Sharigan Eye y rotation
-      sharingan.rotation.y = azimuthangle / 2;
+      // sharingan.rotation.y = azimuthangle / 2;
 
       //Fire and Energy Ring rotation z
-      firemodel.children[0].rotation.z = azimuthangle;
-      vfxmodel.children[0].rotation.z = azimuthangle;
-      vfxmodel.rotation.y = azimuthangle / 2;
-      firemodel.rotation.y = azimuthangle / 2;
+      // firemodel.children[0].rotation.z = azimuthangle;
+      // vfxmodel.children[0].rotation.z = azimuthangle;
+      // vfxmodel.rotation.y = azimuthangle / 2;
+      // firemodel.rotation.y = azimuthangle / 2;
 
       //Show Page1
-      if (azimuthangle === 0.9) {
+      if (azimuthangle === 2.9) {
         page1.style.display = "flex";
         divopen1 = true;
       } else {
         page1.style.display = "none";
       }
       //Show Page2
-      if (azimuthangle === -0.9) {
+      // original end -0.9
+      if (azimuthangle === -2.9) {
         page2.style.display = "flex";
         divopen2 = true;
       } else {
         page2.style.display = "none";
       }
       //Sharingan Eye x rotation
-      if (azimuthangle < 0) {
-        sharingan.rotation.x = -azimuthangle / 2;
-      } else {
-        sharingan.rotation.x = azimuthangle / 2;
-      }
+      // if (azimuthangle < 0) {
+      //   sharingan.rotation.x = -azimuthangle / 2;
+      // } else {
+      //   sharingan.rotation.x = azimuthangle / 2;
+      // }
     });
   });
 
-  //Add Shiringan Eye
-  loader.load(sharinganeye, function (glft) {
-    sharingan = glft.scene;
-    let animation = glft.animations[0];
-    sharingan.scale.set(300, 300, 300);
-    sharingan.position.x += 0;
-    sharingan.position.z -= 30;
-    sharingan.position.y += 30;
-    scene.add(sharingan);
+  loader.load(bridge, function (gltf) {
+    bridgemodel1 = gltf.scene;
+    // bridgemodel1.scale.set(0.5, 0.5, 0.5);
+    bridgemodel1.position.set(0, 0, 0);
+    bridgemodel1.rotation.y = 1.5;
+    bridgemodel1.position.z = -45;
+    bridgemodel1.position.y = 4;
+    bridgemodel2 = bridgemodel1.clone();
+    bridgemodel1.translateZ(-1600);
 
-    mixer2 = new THREE.AnimationMixer(sharingan);
-    let spinAnim = THREE.AnimationClip.findByName(glft.animations, "Take 001");
-    eyespin = mixer2.clipAction(spinAnim);
-    eyespin.play();
+    bridgemodel2.position.set(0, 0, 0);
+    bridgemodel2.rotation.y = 1.5;
+    bridgemodel2.position.z = -47;
+    bridgemodel2.position.y = 4.2;
+    bridgemodel2.translateZ(142.2);
+    // bridgemodel3 = bridgemodel1.clone();
+    scene.add(bridgemodel1);
+    scene.add(bridgemodel2);
   });
 
-  loader.load(vfx, function (gltf) {
-    vfxmodel = gltf.scene;
-    vfxmodel.scale.set(5, 5, 5);
-    vfxmodel.position.y = 4;
-    scene.add(vfxmodel);
-  });
+  function createOutline(scene, objectsArray) {
+    const outlinePass = new OutlinePass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      scene,
+      camera,
+      objectsArray
+    );
+    outlinePass.edgeStrength = 2;
+    outlinePass.edgeGlow = 2.5;
+    outlinePass.edgeThickness = 1;
+    // outlinePass.visibleEdgeColor.set(0x00aaff);
+    outlinePass.visibleEdgeColor.set(0x9c0cf4);
+    composer.addPass(outlinePass);
+    return outlinePass;
+  }
 
-  loader.load(fire, function (gltf) {
-    firemodel = gltf.scene;
-    firemodel.scale.set(0.1, 0.1, 0.1);
-    firemodel.position.y = 9.9;
-    scene.add(firemodel);
-  });
+  function recreateRay() {
+    lightningStrike = new LightningStrike(rayParams1);
+    lightningStrikeMesh = new THREE.Mesh(
+      lightningStrike,
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+
+    lightningStrike2 = new LightningStrike(rayParams2);
+    lightningStrikeMesh2 = new THREE.Mesh(
+      lightningStrike2,
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+
+    lightningStrike3 = new LightningStrike(rayParams3);
+    lightningStrikeMesh3 = new THREE.Mesh(
+      lightningStrike3,
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    lightningStrike4 = new LightningStrike(rayParams4);
+    lightningStrikeMesh4 = new THREE.Mesh(
+      lightningStrike4,
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+
+    outlineMeshArray.push(lightningStrikeMesh);
+    outlineMeshArray.push(lightningStrikeMesh2);
+    outlineMeshArray.push(lightningStrikeMesh3);
+    outlineMeshArray.push(lightningStrikeMesh4);
+    scene.add(
+      lightningStrikeMesh,
+      lightningStrikeMesh2,
+      lightningStrikeMesh3,
+      lightningStrikeMesh4
+    );
+  }
+
+  composer = new EffectComposer(renderer);
+  const renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
+
+  recreateRay();
+  createOutline(scene, outlineMeshArray, new THREE.Color(0x0000ff));
 }
 
-//Sharigan Eye following cursor
-function onMouseMove(event) {
-  //  console.log(event.clientX)
-  //  const mousePosition = {
-  //     x: (event.clientX / window.innerWidth) * 2 - 1,
-  //     y: -(event.clientY / window.innerHeight) * 2 + 1,
-  // };
-  // sharingan.rotation.x = -mousePosition.y+0.1;
-  // sharingan.rotation.y = mousePosition.x;
+function animateGround(deltaTime) {
+  dirt.offset.y += deltaTime * 0.1; // Scroll texture vertically
 }
 
 window.addEventListener("resize", onWindowResize, false);
@@ -318,15 +575,70 @@ window.addEventListener("click", () => {
       swipeicon.style.display = "none";
     }, 2000);
     setmodelloading = false;
-    let audio = document.querySelector("#tune");
-    audio.play();
+    // let audio = document.querySelector("#tune");
+    // audio.play();
   }
 });
+let t = 0;
+
+function render() {
+  t += 0.01;
+
+  renderer.autoClear = false;
+  renderer.clear();
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  let offset = 0;
+
+  [cube1, cube2, cube3, cube4].map((obj) => {
+    obj.rotation.x = t + offset;
+    obj.rotation.y = t + offset;
+    offset++;
+  });
+  // cube1.position.set(-10, Math.abs(Math.sin(t + 0.1) * 5), 7);
+  cube1.position.set(-10, 22.5 + 7.5 * Math.sin(t + 30), 7);
+  cube2.position.set(0, 22.5 + 7.5 * Math.sin(t + 25), -12.5);
+  cube3.position.set(20, 22.5 + 7.5 * Math.sin(t + 20), -10);
+  cube4.position.set(5, 22.5 + 7.5 * Math.sin(t + 35), 10);
+
+  if (
+    lightningStrike &&
+    lightningStrike2 &&
+    lightningStrike3 &&
+    lightningStrike4
+  ) {
+    lightningStrike.rayParameters.sourceOffset.set(0, 15, -4);
+    lightningStrike.rayParameters.destOffset.copy(cube2.position);
+
+    lightningStrike2.rayParameters.sourceOffset.set(0, 17, -4);
+    lightningStrike2.rayParameters.destOffset.copy(cube3.position);
+
+    lightningStrike3.rayParameters.sourceOffset.set(0, 18, -1.5);
+    lightningStrike3.rayParameters.destOffset.copy(cube1.position);
+
+    lightningStrike4.rayParameters.sourceOffset.set(0, 17, -2);
+    lightningStrike4.rayParameters.destOffset.copy(cube4.position);
+
+    lightningStrike.update(t);
+    lightningStrike2.update(t);
+    lightningStrike3.update(t);
+    lightningStrike4.update(t);
+  }
+
+  lightn.intensity = Math.random() * 2000;
+  // lightn1.intensity = Math.random() * 20000;
+  composer.render();
+}
 
 //Render animation
 function animate() {
+  render();
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+  // renderer.render(scene, camera);
+  // animateGround(deltaTime);
+  if (sasunomixer) {
+    sasunomixer.update(clock3.getDelta());
+  }
   if (mixer2) {
     mixer2.update(clock2.getDelta());
   }
@@ -334,26 +646,32 @@ function animate() {
   if (mixer) {
     mixer.update(clock.getDelta());
   }
+  if (bridgemodel1 && bridgemodel2) {
+    // bridgemodel1.position.x -= 5;
+    bridgemodel1.translateZ(-0.1);
+    bridgemodel2.translateZ(-0.1);
+  }
+
+  if (fliper) {
+    if (bridgemodel2?.position.x <= -1600) {
+      bridgemodel1.position.x = 0;
+      bridgemodel1.position.z = -45;
+      bridgemodel1.position.y = 4;
+      bridgemodel1.translateZ(135);
+      fliper = false;
+    }
+  } else {
+    if (bridgemodel1?.position.x <= -1600) {
+      bridgemodel2.position.x = 0;
+      bridgemodel2.position.z = -45;
+      bridgemodel2.position.y = 4;
+      bridgemodel2.translateZ(135);
+      fliper = true;
+    }
+  }
 
   water.material.uniforms["time"].value += 1 / 60.0;
 }
-
-// async function transition1(duration){
-//     controls.enableRotate=false
-//     controls.enableZoom=false
-//     gsap.to(camera.position, { duration: duration, ease: "power1.inOut",
-//             x: 0,
-//             y: 18,
-//             z: 18})
-
-//             // gsap.to(camera.position, { duration: duration, ease: "power1.inOut",
-//             // x: 11,
-//             // y: 1,
-//             // z: 7.6})
-//             // await sleep(15)
-//             controls.enableRotate = true
-//             controls.enableZoom = true
-// }
 
 init();
 animate();
