@@ -312,7 +312,7 @@ function init() {
   shadowLight.castShadow = true;
   scene.add(shadowLight);
 
-  const redlight = new THREE.AmbientLight(0xffffff); // soft white light
+  const redlight = new THREE.AmbientLight(0xffffff); // soft white ligh
   redlight.position.y = 18;
   redlight.position.z = 10;
   redlight.position.x += 0;
