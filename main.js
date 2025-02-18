@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { Tween, Easing, Group } from "@tweenjs/tween.js";
+
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -8,7 +10,10 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { LightningStrike } from "./geometries/LightningStrike.js";
 
 //Models
-import sasukemodel2 from "./models/sasuke_walk.glb?url";
+
+import kuramamodel from "./models/kurama.glb?url";
+import sasukemodel from "./models/sasuke_walk.glb?url";
+import narutomodel from "./models/naruto.glb?url";
 // import sharinganeye from "./models/editsharingan.glb?url";
 // import vfx from "./models/vfx.glb?url";
 // import fire from "./models/fire.glb?url";
@@ -20,6 +25,8 @@ import { Water } from "./objects/Water";
 import { Sky } from "./objects/Sky";
 //Water Image
 import waternormals from "./static/normals/waternormals.jpeg?url";
+import { outline } from "three/examples/jsm/tsl/display/OutlineNode.js";
+import { flattenJSON } from "three/src/animation/AnimationUtils.js";
 
 //Scene and Camera
 const scene = new THREE.Scene();
@@ -34,11 +41,19 @@ const camera = new THREE.PerspectiveCamera(
 let clock = new THREE.Clock();
 let clock2 = new THREE.Clock();
 let clock3 = new THREE.Clock();
+let clock4 = new THREE.Clock();
+let clock5 = new THREE.Clock();
+
+const tweenGroup = new Group();
 
 let renderer,
   composer,
   dirt,
   controls,
+  model,
+  model2,
+  naruto,
+  kurama,
   vfxmodel,
   bridgemodel1,
   bridgemodel2,
@@ -46,8 +61,11 @@ let renderer,
   mixer,
   walk,
   idle,
+  rage,
+  narutowalk,
   sasunomixer,
-  mixer2,
+  narutomixer,
+  kuramamixer,
   eyespin,
   sharingan,
   cube1,
@@ -56,7 +74,10 @@ let renderer,
   cube4,
   lightn,
   lightn1,
-  fliper;
+  lightn2,
+  fliper,
+  skyUniforms,
+  outlinePass;
 
 fliper = true;
 
@@ -186,7 +207,7 @@ const water = new Water(waterGeometry, {
   ),
   sunDirection: new THREE.Vector3(),
   // sunColor: 0xff0000, //0xffffff
-  waterColor: 0x80080, //0x001e0f
+  waterColor: 0x001e0f, //0x80080 //0x001e0f
   sunColor: 0xfff000, //0xffffff
   // distortionScale: 3.7,
   distortionScale: 0.7,
@@ -214,16 +235,16 @@ function init() {
   sky.scale.setScalar(10000); // Specify the dimensions of the skybox
   scene.add(sky); // Add the sky to our scene
 
-  const skyUniforms = sky.material.uniforms;
+  skyUniforms = sky.material.uniforms;
   // skyUniforms["turbidity"].value = 1; //0.001 5   10
   // skyUniforms["rayleigh"].value = 0.01; //0.01 6   2
   // skyUniforms["mieCoefficient"].value = 0.003; //0.003 0.005
   // skyUniforms["mieDirectionalG"].value = 0.988; //0.988  0.8
 
   skyUniforms["turbidity"].value = 5; //1 0.001 5   10
-  skyUniforms["rayleigh"].value = 0.001; //0.01 6   2
+  skyUniforms["rayleigh"].value = 0.002; //0.01 6   2
   skyUniforms["mieCoefficient"].value = 0.001; //0.01 0.0001 0.003 0.005
-  skyUniforms["mieDirectionalG"].value = 0.4; //0.1 0.988  0.8
+  skyUniforms["mieDirectionalG"].value = 0.8; //0.4 //0.1 0.988  0.8
 
   const parameters = {
     elevation: 30, //30
@@ -270,10 +291,19 @@ function init() {
 
   scene.add(cube1, cube2, cube3, cube4);
 
+  cube1.visible = false;
+  cube2.visible = false;
+  cube3.visible = false;
+  cube4.visible = false;
+
   lightn = new THREE.PointLight(0x9c0cf4);
   // lightn = new THREE.PointLight(0x9900ff);
   lightn.castShadow = true;
   scene.add(lightn);
+
+  let color1 = new THREE.Color(0x9c0cf4); // Initial color
+  let color2 = new THREE.Color(0xff0000); // Target color
+  let t = 0; // Interpolation factor
 
   lightn.shadow.mapSize.width = 512;
   lightn.shadow.mapSize.height = 512;
@@ -319,21 +349,87 @@ function init() {
   scene.add(redlight);
 
   //Orbit controls Setting:
-  controls.target.set(4, 20, 0);
+  controls.target.set(4, 20, -3);
   controls.distance = 30;
   controls.minDistance = 30;
   controls.maxDistance = 30;
   controls.minPolarAngle = Math.PI / 2;
   controls.maxPolarAngle = Math.PI / 2;
-  controls.minAzimuthAngle = -2.9;
-  controls.maxAzimuthAngle = 2.9;
+  // controls.minAzimuthAngle = -2.9;
+  // controls.maxAzimuthAngle = 2.9;
   controls.enablePan = false;
+  controls.enabled = false;
 
   controls.update();
 
-  let model, model2;
-
   const loader = new GLTFLoader();
+  //load kurama
+  loader.load(kuramamodel, function (glft) {
+    kurama = glft.scene;
+    kurama.scale.set(14, 14, 14); //8
+    kurama.position.set(0, 0, 0);
+    kurama.position.z = -24;
+    kurama.translateX(-200);
+
+    kurama.position.y = -24;
+    // kurama.rotation.y += 1.5;
+    kurama.rotation.z -= 1.5;
+    kurama.rotation.x += 1.55;
+    kurama.rotation.y += 1.55;
+    let animation = glft.animations;
+
+    scene.add(kurama);
+    kurama.visible = false;
+
+    kuramamixer = new THREE.AnimationMixer(kurama);
+    let rageAnim = THREE.AnimationClip.findByName(
+      animation,
+      "NB_GP_BRmonsterAnim_Shoot1"
+    );
+
+    rage = kuramamixer.clipAction(rageAnim);
+    rage.play();
+  });
+
+  //Add naruto to scene
+  loader.load(narutomodel, function (glft) {
+    naruto = glft.scene;
+
+    naruto.scale.set(1.1, 1.1, 1.1); //8
+    naruto.position.set(0, 0, 0);
+    naruto.position.z = -3;
+
+    naruto.position.y += 12;
+    naruto.rotation.y += 1.5;
+    let animation = glft.animations;
+    // redlight.lookAt(naruto);
+    scene.add(naruto);
+    naruto.visible = false;
+    const orangeColor = 0xf4560c;
+    const spotLight = new THREE.SpotLight(orangeColor);
+    spotLight.position.set(-180, -4, -10); // Set the position of the spotlight
+
+    spotLight.target.position.set(
+      naruto.position.x,
+      naruto.position.y,
+      naruto.position.z
+    ); // Set the target of the spotlight to the character
+
+    spotLight.distance = 20; // Set the distance of the light
+    spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
+    scene.add(spotLight); // Add the spotlight to the scene
+    scene.add(spotLight.target);
+    spotLight.intensity = 3000;
+
+    narutomixer = new THREE.AnimationMixer(naruto);
+    // let idleAnim = THREE.AnimationClip.findByName(animation, "idle");
+    // idle = mixer.clipAction(idleAnim);
+    // idle.play();
+    let walkAnim = THREE.AnimationClip.findByName(animation, "walk.001");
+
+    narutowalk = narutomixer.clipAction(walkAnim);
+    narutowalk.play();
+  });
 
   //Add Sasuno to scene
   loader.load(sasuno, function (glft) {
@@ -346,6 +442,7 @@ function init() {
     model2.position.y = -4;
     model2.rotation.y += 1.5;
     let animation = glft.animations;
+
     // redlight.lookAt(model2);
     scene.add(model2);
     const purpleColor = 0xffffff;
@@ -360,7 +457,7 @@ function init() {
 
     spotLight.distance = 20; // Set the distance of the light
     spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
-    scene.add(spotLight); // Add the spotlight to the scene
+    // scene.add(spotLight); // Add the spotlight to the scene
     // scene.add(spotLight.target);
     spotLight.intensity = 3000;
 
@@ -375,7 +472,7 @@ function init() {
   });
 
   //Add Sasuke to scene
-  loader.load(sasukemodel2, function (glft) {
+  loader.load(sasukemodel, function (glft) {
     model = glft.scene;
     model.scale.set(5, 5, 5); //8
     model.position.set(0, 0, 0);
@@ -398,14 +495,7 @@ function init() {
 
     spotLight.distance = 200; // Set the distance of the light
     spotLight.angle = Math.PI / 4; // Set the angle of the spotlight cone
-    // scene.add(spotLight); // Add the spotlight to the scene
-    // scene.add(spotLight.target);
-    // spotLight.intensity = 3000;
-
     mixer = new THREE.AnimationMixer(model);
-    // let idleAnim = THREE.AnimationClip.findByName(animation, "idle");
-    // idle = mixer.clipAction(idleAnim);
-    // idle.play();
     let walkAnim = THREE.AnimationClip.findByName(
       animation,
       "Armature|mixamo.com|Layer0"
@@ -433,18 +523,18 @@ function init() {
 
       //Show Page1
       if (azimuthangle === 2.9) {
-        page1.style.display = "flex";
-        divopen1 = true;
+        // page1.style.display = "flex";
+        // divopen1 = true;
       } else {
-        page1.style.display = "none";
+        // page1.style.display = "none";
       }
       //Show Page2
       // original end -0.9
       if (azimuthangle === -2.9) {
-        page2.style.display = "flex";
-        divopen2 = true;
+        // page2.style.display = "flex";
+        // divopen2 = true;
       } else {
-        page2.style.display = "none";
+        // page2.style.display = "none";
       }
       //Sharingan Eye x rotation
       // if (azimuthangle < 0) {
@@ -476,7 +566,7 @@ function init() {
   });
 
   function createOutline(scene, objectsArray) {
-    const outlinePass = new OutlinePass(
+    outlinePass = new OutlinePass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       scene,
       camera,
@@ -495,24 +585,24 @@ function init() {
     lightningStrike = new LightningStrike(rayParams1);
     lightningStrikeMesh = new THREE.Mesh(
       lightningStrike,
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
+      new THREE.MeshBasicMaterial({ color: 0x9c0cf4 })
     );
 
     lightningStrike2 = new LightningStrike(rayParams2);
     lightningStrikeMesh2 = new THREE.Mesh(
       lightningStrike2,
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
+      new THREE.MeshBasicMaterial({ color: 0x9c0cf4 })
     );
 
     lightningStrike3 = new LightningStrike(rayParams3);
     lightningStrikeMesh3 = new THREE.Mesh(
       lightningStrike3,
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
+      new THREE.MeshBasicMaterial({ color: 0x9c0cf4 })
     );
     lightningStrike4 = new LightningStrike(rayParams4);
     lightningStrikeMesh4 = new THREE.Mesh(
       lightningStrike4,
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
+      new THREE.MeshBasicMaterial({ color: 0x9c0cf4 })
     );
 
     outlineMeshArray.push(lightningStrikeMesh);
@@ -535,10 +625,6 @@ function init() {
   createOutline(scene, outlineMeshArray, new THREE.Color(0x0000ff));
 }
 
-function animateGround(deltaTime) {
-  dirt.offset.y += deltaTime * 0.1; // Scroll texture vertically
-}
-
 window.addEventListener("resize", onWindowResize, false);
 
 //Handle Window resize
@@ -550,25 +636,32 @@ function onWindowResize() {
 }
 
 //Click event listener to handle page show/hide,music,loaderanimation hide,message display
-let divopen1 = false;
-page1.addEventListener("click", () => {
-  if (divopen1) {
-    page1.style.display = "none";
-    divopen1 = false;
-  }
-});
-let divopen2 = false;
-page2.addEventListener("click", () => {
-  if (divopen2) {
-    page2.style.display = "none";
-    divopen2 = false;
-  }
-});
+// let divopen1 = false;
+// page1.addEventListener("click", () => {
+//   if (divopen1) {
+//     page1.style.display = "none";
+//     divopen1 = false;
+//   }
+// });
+// let divopen2 = false;
+// page2.addEventListener("click", () => {
+//   if (divopen2) {
+//     page2.style.display = "none";
+//     divopen2 = false;
+//   }
+// });
 
 //On click event listener handle audio play, loader animation hide
+let toggleEnabler = false;
 window.addEventListener("click", () => {
+  if (toggleEnabler) {
+    characterSwitch();
+  }
   if (setmodelloading) {
     loaderanimation.remove();
+    const targetPosition = new THREE.Vector3(33, 20, -1); // Target camera position
+    const targetLookAt = new THREE.Vector3(4, 20, -3); // Target look-at point (same as controls.target)
+    animateCameraToTarget(targetPosition, targetLookAt);
     message.style.display = "none";
     swipeicon.style.display = "flex";
     setTimeout(() => {
@@ -577,7 +670,9 @@ window.addEventListener("click", () => {
     setmodelloading = false;
     // let audio = document.querySelector("#tune");
     // audio.play();
+    toggleEnabler = true;
   }
+  //enable character switches
 });
 let t = 0;
 
@@ -630,26 +725,144 @@ function render() {
   composer.render();
 }
 
+function animateCameraToTarget(targetPosition, targetLookAt, duration = 1.5) {
+  let startTime = performance.now();
+  let startPos = camera.position.clone();
+  let startLookAt = controls.target.clone();
+
+  function updateCamera() {
+    let elapsed = (performance.now() - startTime) / 1000; // Convert to seconds
+    let t = Math.min(elapsed / duration, 1); // Normalize time [0,1]
+
+    // Interpolate position
+    camera.position.lerpVectors(startPos, targetPosition, t);
+
+    // Interpolate lookAt but respect OrbitControls constraints
+    let newLookAt = new THREE.Vector3().lerpVectors(
+      startLookAt,
+      targetLookAt,
+      t
+    );
+
+    // Ensure OrbitControls respects the fixed distance
+    let direction = new THREE.Vector3()
+      .subVectors(camera.position, newLookAt)
+      .normalize();
+    camera.position.copy(newLookAt.clone().addScaledVector(direction, 30)); // Maintain distance
+
+    // Update controls
+    controls.target.copy(newLookAt);
+    camera.lookAt(newLookAt);
+    controls.update();
+
+    if (t < 1) {
+      requestAnimationFrame(updateCamera);
+    } else {
+      controls.enabled = false;
+    }
+  }
+
+  controls.enabled = false;
+  requestAnimationFrame(updateCamera);
+}
+
+// Click event to trigger the camera animation
+
+// document.getElementById("animate").addEventListener("click", () => {
+//   const targetPosition = new THREE.Vector3(33, 20, -1); // Target camera position
+//   const targetLookAt = new THREE.Vector3(4, 20, -3); // Target look-at point (same as controls.target)
+//   animateCameraToTarget(targetPosition, targetLookAt);
+// });
+
+// Click listener
+// document.getElementById("animate").addEventListener("click", () => {
+//   const targetPosition = new THREE.Vector3(20, -1, 24);
+//   const targetLookAt = new THREE.Vector3(0, 0, 0);
+//   animateCameraToTarget(targetPosition, targetLookAt, 15000);
+// });
+let toggle = false;
+
+function characterSwitch() {
+  if (toggle) {
+    if (model && naruto && model2 && kurama) {
+      model.visible = true;
+      naruto.visible = false;
+      model2.visible = true;
+      kurama.visible = false;
+      skyUniforms["turbidity"].value = 5; //1 0.001 5   10
+      skyUniforms["rayleigh"].value = 0.002; //0.01 6   2
+      skyUniforms["mieCoefficient"].value = 0.001; //0.01 0.0001 0.003 0.005
+      skyUniforms["mieDirectionalG"].value = 0.8; //0.4 //0.1 0.988  0.8
+    }
+    const purpleColor = 0x9c0cf4;
+    lightn.color.set(purpleColor);
+    // Update the color of all lightning strike meshes
+    outlineMeshArray.forEach((mesh) => {
+      mesh.material.color.set(purpleColor);
+    });
+
+    if (outlinePass) {
+      outlinePass.visibleEdgeColor.set(purpleColor);
+    }
+    toggle = false;
+  } else {
+    if (model && naruto && model2 && kurama) {
+      model.visible = false;
+      naruto.visible = true;
+      model2.visible = false;
+      kurama.visible = true;
+      skyUniforms["turbidity"].value = 2; //0.001 5   10
+      skyUniforms["rayleigh"].value = 0.1; //6   2
+      skyUniforms["mieCoefficient"].value = 0.00001; //0.01 0.0001 0.003 0.005
+      skyUniforms["mieDirectionalG"].value = 0.988; //0.1 0.988  0.8
+    }
+
+    const newColor = 0xffa500;
+
+    lightn.color.set(newColor);
+
+    // Update the color of all lightning strike meshes
+    outlineMeshArray.forEach((mesh) => {
+      mesh.material.color.set(newColor);
+    });
+
+    if (outlinePass) {
+      outlinePass.visibleEdgeColor.set(newColor);
+    }
+    toggle = true;
+  }
+}
+
 //Render animation
 function animate() {
   render();
   requestAnimationFrame(animate);
   // renderer.render(scene, camera);
   // animateGround(deltaTime);
-  if (sasunomixer) {
-    sasunomixer.update(clock3.getDelta());
-  }
-  if (mixer2) {
-    mixer2.update(clock2.getDelta());
+  tweenGroup.update(); // Update all tweens in the group
+  controls.update();
+  if (toggle) {
+    if (narutomixer) {
+      narutomixer.update(clock4.getDelta());
+    }
+
+    if (kuramamixer) {
+      kuramamixer.update(clock5.getDelta());
+    }
+  } else {
+    if (sasunomixer) {
+      sasunomixer.update(clock3.getDelta());
+    }
+
+    if (mixer) {
+      mixer.update(clock.getDelta());
+    }
   }
 
-  if (mixer) {
-    mixer.update(clock.getDelta());
-  }
   if (bridgemodel1 && bridgemodel2) {
     // bridgemodel1.position.x -= 5;
-    bridgemodel1.translateZ(-0.1);
-    bridgemodel2.translateZ(-0.1);
+    bridgemodel1.translateZ(-0.2);
+    bridgemodel2.translateZ(-0.2);
   }
 
   if (fliper) {
