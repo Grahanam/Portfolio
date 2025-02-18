@@ -663,10 +663,10 @@ window.addEventListener("click", () => {
     const targetLookAt = new THREE.Vector3(4, 20, -3); // Target look-at point (same as controls.target)
     animateCameraToTarget(targetPosition, targetLookAt);
     message.style.display = "none";
-    swipeicon.style.display = "flex";
-    setTimeout(() => {
-      swipeicon.style.display = "none";
-    }, 2000);
+    // swipeicon.style.display = "flex";
+    // setTimeout(() => {
+    //   swipeicon.style.display = "none";
+    // }, 2000);
     setmodelloading = false;
     // let audio = document.querySelector("#tune");
     // audio.play();
@@ -861,8 +861,8 @@ function animate() {
 
   if (bridgemodel1 && bridgemodel2) {
     // bridgemodel1.position.x -= 5;
-    bridgemodel1.translateZ(-0.2);
-    bridgemodel2.translateZ(-0.2);
+    bridgemodel1.translateZ(-0.1);
+    bridgemodel2.translateZ(-0.1);
   }
 
   if (fliper) {
